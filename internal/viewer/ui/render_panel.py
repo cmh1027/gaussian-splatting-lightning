@@ -77,6 +77,9 @@ class Keyframe:
         self.model_poses = model_poses_copied
 
 
+
+
+
 class CameraPath:
     def __init__(self, server: viser.ViserServer, viewer):
         self._server = server
@@ -481,7 +484,7 @@ def populate_render_tab(
     def add_camera(event: viser.GuiEvent, enable_model_transform: bool):
         assert event.client_id is not None
         camera = server.get_clients()[event.client_id].camera
-
+    
         # Add this camera to the path.
         camera_path.add_camera(
             Keyframe.from_camera(

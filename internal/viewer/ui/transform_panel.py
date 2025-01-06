@@ -89,13 +89,52 @@ class TransformPanel:
 
                 r_xyz_text_handle = server.gui.add_vector3(
                     "r_xyz",
-                    initial_value=(0., 0., 0.),
+                    initial_value=(0., 0., 0),
                     # min=(-180, -180, -180),
                     # max=(180, 180, 180),
                     step=0.1,
                 )
                 self._make_r_xyz_text_callback(i, r_xyz_text_handle)
                 self.model_r_xyz_text_handle.append(r_xyz_text_handle)
+
+                save_current_pose = server.gui.add_button(
+                    "Save current pose",
+                )
+
+                @save_current_pose.on_click
+                def _(event: viser.GuiEvent) -> None:
+                    assert event.client is not None
+                    with self.server.atomic():
+                        camera = self.server.get_clients()[event.client_id].camera
+                        t_xyz_text_handle.value = camera.position
+                        rpw = vst.SO3(camera.wxyz).as_rpy_radians()
+                        r_xyz_text_handle.value = np.array([rpw.roll, rpw.pitch, rpw.yaw])
+
+                set_current_pose = server.gui.add_button(
+                    "Set pose",
+                )
+
+
+                @set_current_pose.on_click
+                def _(event: viser.GuiEvent) -> None:
+                    assert event.client is not None
+                    with self.server.atomic():
+                        camera = self.server.get_clients()[event.client_id].camera
+                        camera.position = t_xyz_text_handle.value
+                        so3 = vst.SO3.from_rpy_radians(*(r_xyz_text_handle.value))
+                        wxyz = np.asarray(so3.wxyz)
+                        camera.wxyz = wxyz
+                        self.viewer.rerender_for_all_client()
+
+                save_current_image = server.gui.add_button(
+                    "Save current image",
+                )
+
+                @save_current_image.on_click
+                def _(event: viser.GuiEvent) -> None:
+                    assert event.client is not None
+                    with self.server.atomic():
+                        viewer.clients[event.client_id].render_and_save("capture.png")
 
     def _make_size_slider_callback(
             self,
@@ -189,14 +228,15 @@ class TransformPanel:
             if event.client is None:
                 return
 
-            with self.server.atomic():
-                t = np.asarray(handle.value)
-                if idx in self.model_transform_controls:
-                    self.model_transform_controls[idx].position = t
-                self.model_poses[idx].position = t
-
-                self._transform_model(idx)
-                self.viewer.rerender_for_all_client()
+            # with self.server.atomic():
+            #     t = np.asarray(handle.value)
+            #     camera = self.server.get_clients()[event.client_id].camera
+            #     camera.position = t
+            #     # if idx in self.model_transform_controls:
+            #     #     self.model_transform_controls[idx].position = t
+            #     # self.model_poses[idx].position = t
+            #     # self._transform_model(idx)
+            #     self.viewer.rerender_for_all_client()
 
     def _make_r_xyz_text_callback(
             self,
@@ -208,16 +248,20 @@ class TransformPanel:
             if event.client is None:
                 return
 
-            with self.server.atomic():
-                radians = np.radians(np.asarray(handle.value))
-                so3 = vst.SO3.from_rpy_radians(*radians.tolist())
-                wxyz = np.asarray(so3.wxyz)
-                if idx in self.model_transform_controls:
-                    self.model_transform_controls[idx].wxyz = wxyz
-                self.model_poses[idx].wxyz = wxyz
+            # with self.server.atomic():
+            #     radians = np.radians(np.asarray(handle.value))
+            #     so3 = vst.SO3.from_rpy_radians(*radians.tolist())
+            #     wxyz = np.asarray(so3.wxyz)
+            #     camera = self.server.get_clients()[event.client_id].camera
+            #     camera.wxyz = wxyz
+            # #     so3 = vst.SO3.from_rpy_radians(*radians.tolist())
+            # #     wxyz = np.asarray(so3.wxyz)
+            # #     if idx in self.model_transform_controls:
+            # #         self.model_transform_controls[idx].wxyz = wxyz
+            # #     self.model_poses[idx].wxyz = wxyz
 
-            self._transform_model(idx)
-            self.viewer.rerender_for_all_client()
+            # # self._transform_model(idx)
+            # self.viewer.rerender_for_all_client()
 
     @staticmethod
     def quaternion_to_euler_angle_vectorized2(wxyz):

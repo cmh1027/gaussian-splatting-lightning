@@ -77,7 +77,6 @@ class SimplifiedGaussianModelManager:
         scaling = model.get_scaling.to(self.device)
         rotation = model.get_rotation.to(self.device)
         features = model.get_features.to(self.device)  # consume a lot of memory
-
         # rescale
         xyz, scaling = gaussian_utils.GaussianTransformUtils.rescale(
             xyz,

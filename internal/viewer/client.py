@@ -7,7 +7,7 @@ import viser
 import viser.transforms as vtf
 from internal.cameras.cameras import Cameras
 from internal.utils.graphics_utils import fov2focal
-
+from PIL import Image
 
 class ClientThread(threading.Thread):
     def __init__(self, viewer, renderer, client: viser.ClientHandle):
@@ -118,6 +118,24 @@ class ClientThread(threading.Thread):
                     format=self.viewer.image_format,
                     jpeg_quality=jpeg_quality,
                 )
+
+    def render_and_save(self, img_path):
+        with self.client.atomic():
+            max_res, jpeg_quality = self.get_render_options()
+            camera = self.get_camera(
+                self.client.camera,
+                image_size=max_res,
+                appearance_id=self.viewer.get_appearance_id_value(),
+                time_value=self.viewer.time_slider.value,
+                camera_transform=self.viewer.camera_transform,
+            ).to_device(self.viewer.device)
+
+            with torch.no_grad():
+                image = self.renderer.get_outputs(camera, scaling_modifier=self.viewer.scaling_modifier.value)
+                image = torch.clamp(image, max=1.)
+                image = torch.permute(image, (1, 2, 0))
+                Image.fromarray((image.cpu().numpy() * 255).astype(np.uint8)).save(img_path)
+
 
     def run(self):
         while True:

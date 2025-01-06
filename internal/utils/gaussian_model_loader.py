@@ -7,7 +7,7 @@ from internal.renderers.vanilla_renderer import VanillaRenderer
 
 class GaussianModelLoader:
     @staticmethod
-    def search_load_file(model_path: str) -> str:
+    def search_load_file(model_path: str, iteration=None) -> str:
         # if a directory path is provided, auto search checkpoint or ply
         if os.path.isdir(model_path) is False:
             return model_path
@@ -29,16 +29,19 @@ class GaussianModelLoader:
         # not a checkpoint can be found, search point cloud
         if load_from is None:
             previous_point_cloud_iteration = -1
-            for i in glob.glob(os.path.join(model_path, "point_cloud", "iteration_*")):
-                try:
-                    point_cloud_iteration = int(os.path.basename(i).replace("iteration_", ""))
-                except Exception as err:
-                    print("error occurred when parsing iteration from {}: {}".format(i, err))
-                    continue
+            if iteration is not None:
+                return os.path.join(model_path, "point_cloud", f"iteration_{iteration}", "point_cloud.ply")
+            else:
+                for i in glob.glob(os.path.join(model_path, "point_cloud", "iteration_*")):
+                    try:
+                        point_cloud_iteration = int(os.path.basename(i).replace("iteration_", ""))
+                    except Exception as err:
+                        print("error occurred when parsing iteration from {}: {}".format(i, err))
+                        continue
 
-                if point_cloud_iteration > previous_point_cloud_iteration:
-                    previous_point_cloud_iteration = point_cloud_iteration
-                    load_from = os.path.join(i, "point_cloud.ply")
+                    if point_cloud_iteration > previous_point_cloud_iteration:
+                        previous_point_cloud_iteration = point_cloud_iteration
+                        load_from = os.path.join(i, "point_cloud.ply")
 
         assert load_from is not None, "not a checkpoint or point cloud can be found"
 
